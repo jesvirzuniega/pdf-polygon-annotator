@@ -33,7 +33,7 @@ export default function Home() {
           <h1 className="text-6xl mb-5">PDF Polygon Annotator</h1>
           <p className="mb-5">Annotate PDFs with polygons and text</p>
         </div>
-        <PdfViewer tool={tool} />
+        <PdfViewer tool={tool} setTool={setTool} />
       </main>
     </div>
   );
