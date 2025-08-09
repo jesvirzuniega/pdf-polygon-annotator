@@ -15,7 +15,7 @@ export default function Home() {
 
   return (
     <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
-      <header className="fixed top-5 flex w-full justify-center z-20">
+      <header className="fixed top-5 flex w-full justify-center z-50">
         <div className="flex text-lg bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2">
           <button type="button" className={`${btn} ${tool === null ? btnActive : ''}`} onClick={() => setTool(null)}>
             Mouse

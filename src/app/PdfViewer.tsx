@@ -96,14 +96,20 @@ export default function PdfViewer({ tool, setTool }: Props) {
   };
 
   const spawnLine = (x: number, y: number) => {
-    setLines([...lines, { x, y }]);
+    setLines([...lines, getNearestRenderedPoint(renderedLines, { x, y }) || { x, y }]);
   };
 
-  const drawLine = (context: CanvasRenderingContext2D, { x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point) => {
-    context.beginPath();
-    context.moveTo(x1, y1);
-    context.lineTo(x2, y2);
-    context.stroke();
+  // This is used to improve user experience by snapping to the nearest rendered point
+  const getNearestRenderedPoint = (renderedLines: Line[], { x ,y }: Point, magnetSize: number = 20) => {
+    return renderedLines.reduce((acc: Point | null, [p1, p2]) => {
+      if (acc) return acc;
+      const diff1 = Math.abs(p1.x - x) + Math.abs(p1.y - y);
+      const diff2 = Math.abs(p2.x - x) + Math.abs(p2.y - y);
+
+      if (diff1 <= magnetSize) return p1;
+      if (diff2 <= magnetSize) return p2;
+      return acc;
+    }, null);
   }
 
   useEffect(() => {
@@ -115,9 +121,21 @@ export default function PdfViewer({ tool, setTool }: Props) {
       renderedLines.forEach(([p1, p2]) => drawLine(context, p1, p2));
     }
 
+    const drawLine = (context: CanvasRenderingContext2D, { x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, snapToTheNearestPoint: boolean = false) => {
+      context.beginPath();
+      context.moveTo(x1, y1);
+      const nearestPoint = snapToTheNearestPoint ? getNearestRenderedPoint(renderedLines, { x: x2, y: y2 }) : null;
+      if (nearestPoint) {
+        context.lineTo(nearestPoint.x, nearestPoint.y);
+      } else {
+        context.lineTo(x2, y2);
+      }
+      context.stroke();
+    }
+
     const previewLineOnMouseMove = (e: MouseEvent) => {
       redraw();
-      drawLine(context, lines[0], { x: e.offsetX, y: e.offsetY });
+      drawLine(context, lines[0], { x: e.offsetX, y: e.offsetY }, true);
     }
 
     const removePreviewLineOnMouseUp = () => {
