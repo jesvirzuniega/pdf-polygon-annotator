@@ -121,6 +121,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
     }
 
     const removePreviewLineOnMouseUp = () => {
+      redraw();
       document.removeEventListener('mousemove', previewLineOnMouseMove);
     }
 
@@ -129,7 +130,6 @@ export default function PdfViewer({ tool, setTool }: Props) {
       document.addEventListener('mouseup', removePreviewLineOnMouseUp);
     }
 
-    console.log(lines);
     if (lines.length === 2) {
       removePreviewLineOnMouseUp();
       redraw();
