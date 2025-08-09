@@ -29,9 +29,9 @@ export default function Home() {
         </div>
       </header>
       <main className="flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center justify-center mt-[20vh] mb-10">
-          <h1 className="text-6xl mb-5">PDF Polygon Annotator</h1>
-          <p className="mb-5">Annotate PDFs with polygons and text</p>
+        <div className="flex flex-col items-center justify-center mt-[20vh] mb-5">
+          <h1 className="text-4xl mb-5">PDF Polygon Annotator</h1>
+          <p className="mb-2">Annotate PDFs with polygons and text</p>
         </div>
         <PdfViewer tool={tool} setTool={setTool} />
       </main>

@@ -43,7 +43,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
 
   async function renderPdfPage(page: pdfjsLib.PDFPageProxy, scale: number) {
     const viewport = page.getViewport({ scale: scale, });
-    const outputScale = window.devicePixelRatio || 1;
+    const outputScale = 1;
 
     const canvas = pdfCanvasRef.current!;
     const canvasDraw = pdfDrawCanvasRef.current!;
@@ -118,17 +118,22 @@ export default function PdfViewer({ tool, setTool }: Props) {
 
     const redraw = () => {
       context.clearRect(0, 0, canvas.width, canvas.height);
-      renderedLines.forEach(([p1, p2]) => drawLine(context, p1, p2));
+      renderedLines.forEach(([p1, p2]) => drawLine(context, p1, p2, false, true));
     }
 
-    const drawLine = (context: CanvasRenderingContext2D, { x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, snapToTheNearestPoint: boolean = false) => {
+    const drawLine = (context: CanvasRenderingContext2D, { x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, snapToTheNearestPoint: boolean = false, addBox: boolean = false) => {
+      const boxSize = 4;
       context.beginPath();
       context.moveTo(x1, y1);
+      context.fillRect(x1 - boxSize / 2, y1 - boxSize / 2, boxSize, boxSize);
       const nearestPoint = snapToTheNearestPoint ? getNearestRenderedPoint(renderedLines, { x: x2, y: y2 }) : null;
       if (nearestPoint) {
         context.lineTo(nearestPoint.x, nearestPoint.y);
       } else {
         context.lineTo(x2, y2);
+      }
+      if (addBox) {
+        context.fillRect(x2 - boxSize / 2, y2 - boxSize / 2, boxSize, boxSize);
       }
       context.stroke();
     }
@@ -151,7 +156,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
     if (lines.length === 2) {
       removePreviewLineOnMouseUp();
       redraw();
-      drawLine(context, lines[0], lines[1]);
+      drawLine(context, lines[0], lines[1], false, true);
       setLines([]);
       setRenderedLines([...renderedLines, [lines[0], lines[1]]]);
     }
@@ -165,12 +170,12 @@ export default function PdfViewer({ tool, setTool }: Props) {
 
   return <div className="flex flex-col items-center justify-center">
     <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onChange={handleFileChange}/>
-    <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !p-3 text-2xl mb-5`}>
+    <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !p-3 text-xl mb-5`}>
       Upload PDF
     </label>
     <div className="relative overflow-hidden">
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
-      <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
+      <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full bg-red-500 opacity-50 h-full z-10`}></canvas>
       <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={onClick}></div>
     </div>
   </div>;
