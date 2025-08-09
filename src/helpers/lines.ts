@@ -7,7 +7,7 @@ export const areConnected = ([{ x: aX1, y: aY1 }, { x: aX2, y: aY2 }]: Line, [{ 
     aX2 === bX2 && aY2 === bY2;
 }
 
-export const getGroupsOfConnectedLines = (lines: Line[]) => {
+export const getGroupsOfConnectedLinesByIndices = (lines: Line[]) => {
   const connections: number[][] = Array.from({ length: lines.length }, () => []);
   // Build connections for each lines first
   for (let i = 0; i < lines.length; i++) {
@@ -78,4 +78,12 @@ export const drawLine = (renderedLines: Line[], context: CanvasRenderingContext2
 export const redraw = (renderedLines: Line[], context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
   context.clearRect(0, 0, canvas.width, canvas.height);
   renderedLines.forEach(([p1, p2]) => drawLine(renderedLines, context, p1, p2, false, true));
+}
+
+export const getDimensionsOfLineGroup = (lineGroup: Line[]) => {
+  const minX = Math.min(...lineGroup.map(([p1, p2]) => Math.min(p1.x, p2.x)));
+  const minY = Math.min(...lineGroup.map(([p1, p2]) => Math.min(p1.y, p2.y)));
+  const maxX = Math.max(...lineGroup.map(([p1, p2]) => Math.max(p1.x, p2.x)));
+  const maxY = Math.max(...lineGroup.map(([p1, p2]) => Math.max(p1.y, p2.y)));
+  return { minX, minY, maxX, maxY };
 }

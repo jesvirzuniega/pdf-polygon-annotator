@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { btn } from "./page";
 import { Line, Point, Mode } from "@/types";
 import * as pdfjsLib from "pdfjs-dist";
-import { redraw, drawLine, getGroupsOfConnectedLines, getNearestRenderedPoint } from "@/helpers/lines";
+import { redraw, drawLine, getGroupsOfConnectedLinesByIndices, getNearestRenderedPoint, getDimensionsOfLineGroup } from "@/helpers/lines";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 interface Props {
@@ -20,6 +20,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
   const [renderedLines, setRenderedLines] = useState<Line[]>([]);
   const [lines, setLines] = useState<Point[]>([]);
+  const [groupingBoxes, setGroupingBoxes] = useState<{ x: number, y: number, width: number, height: number }[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -95,8 +96,9 @@ export default function PdfViewer({ tool, setTool }: Props) {
   };
 
   useEffect(() => {
-    const lineGroups = getGroupsOfConnectedLines(renderedLines);
-    console.log(lineGroups);
+    const lineGroups = getGroupsOfConnectedLinesByIndices(renderedLines);
+    const dimensions = lineGroups.map(group => getDimensionsOfLineGroup(group.map(index => renderedLines[index])));
+    setGroupingBoxes(dimensions.map(({ minX, minY, maxX, maxY }) => ({ x: minX, y: minY, width: maxX - minX, height: maxY - minY })));
   }, [renderedLines])
 
   useEffect(() => {
@@ -142,7 +144,23 @@ export default function PdfViewer({ tool, setTool }: Props) {
     <div className="relative overflow-hidden">
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
       <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
-      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={onClick}></div>
+      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={onClick}>
+        {groupingBoxes.map((box, index) => <GroupingBox key={index} {...box} />)}
+      </div>
     </div>
   </div>;
+}
+
+function GroupingBox({ x, y, width, height }: { x: number, y: number, width: number, height: number }) {
+  const spacing = 8;
+  const style = {
+    left: `${x - spacing}px`,
+    top: `${y - spacing}px`,
+    width: `${width + spacing * 2}px`,
+    height: `${height + spacing * 2}px`,
+  }
+  return <div 
+    className="movable-object absolute z-10 border-1 border-dashed border-black p-2 pointer-events-none" 
+    style={style}>
+  </div>
 }
