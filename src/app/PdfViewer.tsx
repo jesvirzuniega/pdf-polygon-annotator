@@ -1,21 +1,16 @@
 'use client';
 
 import { useEffect, useRef, useState } from "react";
-import { btn, Mode } from "./page";
+import { btn } from "./page";
+import { Line, Point, Mode } from "@/types";
 import * as pdfjsLib from "pdfjs-dist";
+import { redraw, drawLine, getGroupsOfConnectedLines, getNearestRenderedPoint } from "@/helpers/lines";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 interface Props {
   tool: Mode | null;
   setTool: (tool: Mode | null) => void;
 }
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-type Line = [Point, Point];
 
 export default function PdfViewer({ tool, setTool }: Props) {
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
@@ -99,52 +94,22 @@ export default function PdfViewer({ tool, setTool }: Props) {
     setLines([...lines, getNearestRenderedPoint(renderedLines, { x, y }) || { x, y }]);
   };
 
-  // This is used to improve user experience by snapping to the nearest rendered point
-  const getNearestRenderedPoint = (renderedLines: Line[], { x ,y }: Point, magnetSize: number = 20) => {
-    return renderedLines.reduce((acc: Point | null, [p1, p2]) => {
-      if (acc) return acc;
-      const diff1 = Math.abs(p1.x - x) + Math.abs(p1.y - y);
-      const diff2 = Math.abs(p2.x - x) + Math.abs(p2.y - y);
-
-      if (diff1 <= magnetSize) return p1;
-      if (diff2 <= magnetSize) return p2;
-      return acc;
-    }, null);
-  }
+  useEffect(() => {
+    const lineGroups = getGroupsOfConnectedLines(renderedLines);
+    console.log(lineGroups);
+  }, [renderedLines])
 
   useEffect(() => {
     const canvas = pdfDrawCanvasRef.current!;
     const context = canvas.getContext('2d')!;
 
-    const redraw = () => {
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      renderedLines.forEach(([p1, p2]) => drawLine(context, p1, p2, false, true));
-    }
-
-    const drawLine = (context: CanvasRenderingContext2D, { x: x1, y: y1 }: Point, { x: x2, y: y2 }: Point, snapToTheNearestPoint: boolean = false, addBox: boolean = false) => {
-      const boxSize = 4;
-      context.beginPath();
-      context.moveTo(x1, y1);
-      context.fillRect(x1 - boxSize / 2, y1 - boxSize / 2, boxSize, boxSize);
-      const nearestPoint = snapToTheNearestPoint ? getNearestRenderedPoint(renderedLines, { x: x2, y: y2 }) : null;
-      if (nearestPoint) {
-        context.lineTo(nearestPoint.x, nearestPoint.y);
-      } else {
-        context.lineTo(x2, y2);
-      }
-      if (addBox) {
-        context.fillRect(x2 - boxSize / 2, y2 - boxSize / 2, boxSize, boxSize);
-      }
-      context.stroke();
-    }
-
     const previewLineOnMouseMove = (e: MouseEvent) => {
-      redraw();
-      drawLine(context, lines[0], { x: e.offsetX, y: e.offsetY }, true);
+      redraw(renderedLines, context, canvas);
+      drawLine(renderedLines, context, lines[0], { x: e.offsetX, y: e.offsetY }, true);
     }
 
     const removePreviewLineOnMouseUp = () => {
-      redraw();
+      redraw(renderedLines, context, canvas);
       document.removeEventListener('mousemove', previewLineOnMouseMove);
     }
 
@@ -153,10 +118,11 @@ export default function PdfViewer({ tool, setTool }: Props) {
       document.addEventListener('mouseup', removePreviewLineOnMouseUp);
     }
 
+    // Connect the lines and draw them on the canvas
     if (lines.length === 2) {
       removePreviewLineOnMouseUp();
-      redraw();
-      drawLine(context, lines[0], lines[1], false, true);
+      redraw(renderedLines, context, canvas);
+      drawLine(renderedLines, context, lines[0], lines[1], false, true);
       setLines([]);
       setRenderedLines([...renderedLines, [lines[0], lines[1]]]);
     }
@@ -175,7 +141,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
     </label>
     <div className="relative overflow-hidden">
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
-      <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full bg-red-500 opacity-50 h-full z-10`}></canvas>
+      <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
       <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={onClick}></div>
     </div>
   </div>;

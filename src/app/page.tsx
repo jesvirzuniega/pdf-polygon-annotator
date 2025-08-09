@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-
-export type Mode = "text" | "line";
+import { Mode } from "@/types";
 
 export const btn = 'font-semibold py-1 px-2 cursor-pointer rounded-xl transition-color duration-300'
 export const btnActive = 'bg-[#da3668]'
@@ -29,7 +28,7 @@ export default function Home() {
         </div>
       </header>
       <main className="flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center justify-center mt-[20vh] mb-5">
+        <div className="flex flex-col items-center justify-center mt-[120px] mb-5">
           <h1 className="text-4xl mb-5">PDF Polygon Annotator</h1>
           <p className="mb-2">Annotate PDFs with polygons and text</p>
         </div>
