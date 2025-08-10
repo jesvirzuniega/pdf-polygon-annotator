@@ -76,12 +76,12 @@ export default function PdfViewer() {
   return <div className="flex flex-col items-center justify-center">
     <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
       <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
-      <label htmlFor="pdf-file" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`}>
-        Upload PDF
+      <label htmlFor="pdf-file" className={`${btn} ${pdfDoc ? bgSecondary : bgPrimary} !px-3 !py-2 text-base mb-5`}>
+        {pdfDoc ? 'Change' : 'Upload PDF'}
       </label>
 
-      {pdfDoc && <button type="button" className={`${btn} ${bgSecondary} !px-3 !py-2 text-base mb-5`} onClick={handleDownloadPdf}>
-        Download PDF
+      {pdfDoc && <button type="button" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`} onClick={handleDownloadPdf}>
+        Download
       </button>}
     </div>
     <div className="relative overflow-hidden rounded-t-lg">
