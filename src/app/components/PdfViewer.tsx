@@ -107,7 +107,7 @@ export default function PdfViewer() {
         canvasWrapperRefs.current[i]!.style.display = originalDisplay;
       }
       const pdfBytes = await createdPdfDoc.save();
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blob = new Blob([pdfBytes as BlobPart], { type: 'application/pdf' });
       const blobUrl = URL.createObjectURL(blob);
       return blobUrl;
     } catch (error) {
