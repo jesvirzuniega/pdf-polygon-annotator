@@ -10,7 +10,12 @@ export default function TextBox({ x, y, ...props }: Omit<Box, 'id'>) {
   useEffect(() => {
     if (ref.current) ref.current.focus();
     setHeightToScrollHeight();
-  }, [ref, text]);
+  }, []);
+
+  // Adjust height when text changes
+  useEffect(() => {
+    setHeightToScrollHeight();
+  }, [text]);
 
   const setHeightToScrollHeight = () => {
     if (ref.current) ref.current.style.height = ref.current.scrollHeight + 'px';

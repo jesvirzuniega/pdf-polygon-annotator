@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Mode } from "@/types";
 import { ToolProvider } from "./ToolContext";
@@ -12,14 +12,24 @@ const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
 
 export default function Home() {
   const [tool, setTool] = useState<Mode|null>(null);
-  const [loadingPdf, setLoadingPdf] = useState<boolean>(false);
+  const [isLoadingPdf, setIsLoadingPdf] = useState<boolean>(false);
   const [hasPdf, setHasPdf] = useState<boolean>(false);
 
+  // ON 'esc' key press, set tool to null
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (isLoadingPdf) return;
+      if (e.key === 'Escape') setTool(null);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isLoadingPdf]);
+
   return (
-    <ToolProvider value={{ tool, setTool, setLoadingPdf, setHasPdf }}>
+    <ToolProvider value={{ tool, setTool, setIsLoadingPdf, setHasPdf, isLoadingPdf }}>
       <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
         {hasPdf && <header className="fixed top-5 flex w-full justify-center z-50">
-          <div className={`flex text-sm bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2 ${loadingPdf ? 'pointer-events-none' : ''}`}>
+          <div className={`flex text-sm bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2 ${isLoadingPdf ? 'pointer-events-none' : ''}`}>
             <button type="button" className={`${btn} ${tool === null ? btnActive : ''}`} onClick={() => setTool(null)}>
               Mouse
             </button>

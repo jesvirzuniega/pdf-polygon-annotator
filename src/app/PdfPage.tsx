@@ -38,27 +38,33 @@ export default function PdfPage({ pdfDoc, pageNumber, currentPage }: Props) {
     setLastCreatedLineGroup(null);
   }
 
-  async function getPage(pdfDoc: pdfjsLib.PDFDocumentProxy, p: number) {
-    if (!pdfDoc) return;
-    const page = await pdfDoc.getPage(p);
-    if (page) setPdfPage(page);
-  }
-
   /**
    * Get the page
    */
   useEffect(() => {
+    let loadingPageIsCancelled = false;
+    async function getPage(pdfDoc: pdfjsLib.PDFDocumentProxy, p: number) {
+      if (!pdfDoc) return;
+      const page = await pdfDoc.getPage(p).then(page => {
+        if (loadingPageIsCancelled) return null;
+        return page;
+      });
+      if (page) setPdfPage(page);
+    }
+
     if (pdfDoc) {
       getPage(pdfDoc, pageNumber)
       resetPageData()
     }
+
+    return () => { loadingPageIsCancelled = true; };
   }, [pdfDoc, pageNumber]);
 
   /**
    * Render the page of the PDF document
    */
   useEffect(() => {
-    async function renderPdfPage(page: pdfjsLib.PDFPageProxy) {
+    function renderPdfPage(page: pdfjsLib.PDFPageProxy) {
       const viewport = page.getViewport({ scale: pageScale, });
       const outputScale = 1;
   

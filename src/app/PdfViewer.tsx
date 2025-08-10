@@ -9,7 +9,7 @@ import { ToolContext } from "./ToolContext";
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 export default function PdfViewer() {
-  const { setLoadingPdf, setHasPdf, isLoadingPdf } = useContext(ToolContext);
+  const { setIsLoadingPdf: setLoadingPdf, setHasPdf, isLoadingPdf } = useContext(ToolContext);
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy|null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -28,7 +28,6 @@ export default function PdfViewer() {
    */
   useEffect(() => {
     function reset() {
-      setHasPdf(false);
       setPdfDoc(null);
       setCurrentPage(1);
       setTotalPages(0);
@@ -41,6 +40,7 @@ export default function PdfViewer() {
       const doc = await loadingTask.promise.catch(() => {
         setError('Cannot load PDF. It may be damaged or corrupted');
         setLoadingPdf(false);
+        setHasPdf(false);
         return;
       });
       if (!doc) return;
@@ -52,9 +52,8 @@ export default function PdfViewer() {
       setError(null);
     }
     if (fileBuffer) convertBufferToPdf(fileBuffer);
-  }, [fileBuffer, setLoadingPdf, setHasPdf]);
-
-  // currentPage is consumed by child components; no side-effect needed here
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fileBuffer]);
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => {
