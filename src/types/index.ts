@@ -7,10 +7,8 @@ export type Line = [Point, Point];
 
 export type Mode = "text" | "line";
 
-export type Box = {
+export interface Box extends Point {
   id: string
-  x: number
-  y: number
 }
 
 export type Dimension = {

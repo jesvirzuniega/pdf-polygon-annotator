@@ -1,21 +1,18 @@
 'use client';
 
 import * as pdfjsLib from "pdfjs-dist";
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { btn } from "./page";
 import { Line, Point, Mode, Box, Dimension } from "@/types";
 import LineGroupBox from "./LineGroupBox";
 import TextBox from "./TextBox";
 import { redraw, drawLine, getGroupsOfConnectedLinesByIndices, getNearestRenderedPoint, getDimensionsOfLineGroup } from "@/helpers/lines";
+import { ToolContext } from "./ToolContext";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
-interface Props {
-  tool: Mode | null;
-  setTool: (tool: Mode | null) => void;
-}
-
-export default function PdfViewer({ tool, setTool }: Props) {
+export default function PdfViewer() {
+  const { tool, setTool } = useContext(ToolContext);
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
   const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
   const pdfCanvasOverlayRef = useRef<HTMLDivElement>(null);
@@ -25,7 +22,9 @@ export default function PdfViewer({ tool, setTool }: Props) {
   const [lines, setLines] = useState<Point[]>([]);
   const [lineGroups, setLineGroups] = useState<Record<string, Line[]>>({});
   const [lineGroupBoxes, setLineGroupBoxes] = useState<Array<Box & Dimension>>([]);
-  const [textBoxes, setTextBoxes] = useState<Box[]>([]);
+  const [textBoxes, setTextBoxes] = useState<Record<string, Box>>({});
+  const [lastCreatedLineIndex, setLastCreatedLineIndex] = useState<number>(0);
+  const [lastCreatedLineGroup, setLastCreatedLineGroup] = useState<string|null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -88,7 +87,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
   };
 
   const spawnTextBox = (x: number, y: number) => {
-    setTextBoxes([...textBoxes, { id: crypto.randomUUID(), x, y }]);
+    setTextBoxes({ ...textBoxes, [crypto.randomUUID()]: { id: crypto.randomUUID(), x, y } });
     setTool(null);
   };
 
@@ -104,10 +103,13 @@ export default function PdfViewer({ tool, setTool }: Props) {
     const record: typeof lineGroups = {};
     for (const group of groups) {
       const groupId = crypto.randomUUID()
-      record[groupId] = group.map(index => renderedLines[index]);
+      record[groupId] = group.map(index => {
+        if (index === lastCreatedLineIndex) setLastCreatedLineGroup(groupId);
+        return renderedLines[index];
+      });
     }
     setLineGroups(record);
-  }, [renderedLines])
+  }, [renderedLines, lastCreatedLineIndex])
 
   /**
    * Re-renders the grouping boxes when the line groups change
@@ -154,6 +156,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
       drawLine(renderedLines, context, lines[0], lines[1], false, true);
       setLines([]);
       setRenderedLines([...renderedLines, [lines[0], lines[1]]]);
+      setLastCreatedLineIndex(renderedLines.length);
     }
 
     return () => {
@@ -161,7 +164,6 @@ export default function PdfViewer({ tool, setTool }: Props) {
       document.removeEventListener('mouseup', removePreviewLineOnMouseUp);
     }
   }, [lines, renderedLines]);
-
 
   return <div className="flex flex-col items-center justify-center">
     <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
@@ -171,13 +173,12 @@ export default function PdfViewer({ tool, setTool }: Props) {
     <div className="relative overflow-hidden">
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
       <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
-      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={canvasOverlayOnClickHandler}>
-        {textBoxes.map((box) => 
+      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20 ${tool === 'line' ? 'cursor-crosshair' : (tool === 'text' ? 'cursor-text' : '')}`} onClick={canvasOverlayOnClickHandler}>
+        {Object.entries(textBoxes).map(([id, box]) => 
           <TextBox 
-            key={box.id} 
-            x={box.x} 
-            y={box.y} 
-            tool={tool} 
+            key={id} 
+            x={box.x}
+            y={box.y}
           />)
         }
         {lineGroupBoxes.map((box) => 
@@ -187,7 +188,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
             y={box.y} 
             width={box.width} 
             height={box.height} 
-            tool={tool} 
+            isActive={box.id === lastCreatedLineGroup}
           />)
         }
       </div>
