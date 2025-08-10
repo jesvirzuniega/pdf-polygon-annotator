@@ -14,6 +14,9 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 export default function PdfViewer() {
   const { tool, setTool } = useContext(ToolContext);
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
+  const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy|null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(0);
   const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
   const pdfCanvasOverlayRef = useRef<HTMLDivElement>(null);
   const pdfDrawCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,52 +29,65 @@ export default function PdfViewer() {
   const [lastCreatedLineIndex, setLastCreatedLineIndex] = useState<number>(0);
   const [lastCreatedLineGroup, setLastCreatedLineGroup] = useState<string|null>(null);
 
+  useEffect(() => {
+    async function convertBufferToPdf(buffer: Uint8Array) {
+      const loadingTask = pdfjsLib.getDocument({ data: buffer });
+      const doc = await loadingTask.promise;
+      setTotalPages(doc.numPages);
+      setPdfDoc(doc);
+    }
+
+    if (fileBuffer) convertBufferToPdf(fileBuffer);
+  }, [fileBuffer]);
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     const buffer = new Uint8Array(await f.arrayBuffer());
     setFileBuffer(buffer);
-    convertBufferToPdf(buffer);
   };
 
-  async function convertBufferToPdf(buffer: Uint8Array) {
-    const loadingTask = pdfjsLib.getDocument({ data: buffer });
-    const doc = await loadingTask.promise;
-    const page = await doc.getPage(1);
-    if (page) renderPdfPage(page, 1.5);
-  }
+  useEffect(() => {
+    async function getPage(pageNumber: number) {
+      if (!pdfDoc) return;
+      const page = await pdfDoc.getPage(pageNumber);
+      if (page) renderPdfPage(page, 1.5);
+    }
 
-  async function renderPdfPage(page: pdfjsLib.PDFPageProxy, scale: number) {
-    const viewport = page.getViewport({ scale: scale, });
-    const outputScale = 1;
+    async function renderPdfPage(page: pdfjsLib.PDFPageProxy, scale: number) {
+      const viewport = page.getViewport({ scale: scale, });
+      const outputScale = 1;
+  
+      const canvas = pdfCanvasRef.current!;
+      const canvasDraw = pdfDrawCanvasRef.current!;
+      const context = canvas.getContext('2d');
+  
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = Math.floor(viewport.width) + "px";
+      canvas.style.height =  Math.floor(viewport.height) + "px";
+      canvasDraw.width = Math.floor(viewport.width * outputScale);
+      canvasDraw.height = Math.floor(viewport.height * outputScale);
+      canvasDraw.style.width = Math.floor(viewport.width) + "px";
+      canvasDraw.style.height =  Math.floor(viewport.height) + "px";
+  
+      const transform = outputScale !== 1
+        ? [outputScale, 0, 0, outputScale, 0, 0]
+        : null;
+  
+      const renderContext = {
+        canvasContext: context,
+        transform: transform,
+        viewport: viewport
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } as any;
+      
+      page.render(renderContext);
+      resetCanvasOverlay();
+    }  
 
-    const canvas = pdfCanvasRef.current!;
-    const canvasDraw = pdfDrawCanvasRef.current!;
-    const context = canvas.getContext('2d');
-
-    canvas.width = Math.floor(viewport.width * outputScale);
-    canvas.height = Math.floor(viewport.height * outputScale);
-    canvas.style.width = Math.floor(viewport.width) + "px";
-    canvas.style.height =  Math.floor(viewport.height) + "px";
-    canvasDraw.width = Math.floor(viewport.width * outputScale);
-    canvasDraw.height = Math.floor(viewport.height * outputScale);
-    canvasDraw.style.width = Math.floor(viewport.width) + "px";
-    canvasDraw.style.height =  Math.floor(viewport.height) + "px";
-
-    const transform = outputScale !== 1
-      ? [outputScale, 0, 0, outputScale, 0, 0]
-      : null;
-
-    const renderContext = {
-      canvasContext: context,
-      transform: transform,
-      viewport: viewport
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any;
-    
-    page.render(renderContext);
-    resetCanvasOverlay();
-  }
+    getPage(currentPage);
+  }, [currentPage, pdfDoc]);
 
   const resetCanvasOverlay = () => {
     setRenderedLines([]);
@@ -165,32 +181,65 @@ export default function PdfViewer() {
     }
   }, [lines, renderedLines]);
 
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => {
+      if (prev === 1) return prev;
+      return prev - 1;
+    });
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => {
+      if (totalPages === prev) return prev;
+      return prev + 1;
+    });
+  }
+
   return <div className="flex flex-col items-center justify-center">
     <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
     <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !p-3 text-xl mb-5`}>
       Upload PDF
     </label>
-    <div className="relative overflow-hidden">
-      <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
-      <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
-      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20 ${tool === 'line' ? 'cursor-crosshair' : (tool === 'text' ? 'cursor-text' : '')}`} onClick={canvasOverlayOnClickHandler}>
-        {Object.entries(textBoxes).map(([id, box]) => 
-          <TextBox 
-            key={id} 
-            x={box.x}
-            y={box.y}
-          />)
-        }
-        {lineGroupBoxes.map((box) => 
-          <LineGroupBox 
-            key={box.id} 
-            x={box.x} 
-            y={box.y} 
-            width={box.width} 
-            height={box.height} 
-            isActive={box.id === lastCreatedLineGroup}
-          />)
-        }
+    <div className="relative overflow-hidden rounded-t-lg">
+      {totalPages > 1 && (
+        <div className="flex w-full text-sm justify-between bg-[#1c1618] z-[50] px-4 p-2 rounded-t-lg">
+          {currentPage > 1 ? (
+            <button type="button" className={`text-white cursor-pointer hover:underline`} onClick={handlePreviousPage}>
+              Previous
+            </button>
+          ) : <div></div>}
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <p>Page {currentPage} of {totalPages}</p>
+          </div>
+          {currentPage < totalPages ? (
+            <button type="button" className={`text-white cursor-pointer hover:underline`} onClick={handleNextPage}>
+              Next
+            </button>
+          ) : <div></div>}
+        </div>
+      )}
+      <div className="relative w-full h-full">
+        <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-b-2xl shadow-2xl relative w-full h-full`}></canvas>
+        <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
+        <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20 ${tool === 'line' ? 'cursor-crosshair' : (tool === 'text' ? 'cursor-text' : '')}`} onClick={canvasOverlayOnClickHandler}>
+          {Object.entries(textBoxes).map(([id, box]) => 
+            <TextBox 
+              key={id} 
+              x={box.x}
+              y={box.y}
+            />)
+          }
+          {lineGroupBoxes.map((box) => 
+            <LineGroupBox 
+              key={box.id} 
+              x={box.x} 
+              y={box.y} 
+              width={box.width} 
+              height={box.height} 
+              isActive={box.id === lastCreatedLineGroup}
+            />)
+          }
+        </div>
       </div>
     </div>
   </div>;
