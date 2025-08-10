@@ -30,7 +30,7 @@ export default function TextBox({ x, y, ...props }: Omit<Box, 'id'>) {
     setIsEditing(false);
   }
 
-  const className = `absolute max-w-[240px] p-2 h-auto text-sm border-1 border-dashed border-transparent focus:border-black text-black bg-transparent focus:outline-none z-10 resize-none overflow-hidden ${tool === 'line' ? 'pointer-events-none' : (tool === null ? 'cursor-default' : '')}`;
+  const className = `absolute w-[180px] p-2 whitespace-pre-wrap break-words min-w-[180px] max-w-[180px] h-auto text-sm border-1 border-dashed border-transparent focus:border-black text-black bg-transparent focus:outline-none z-10 resize-none overflow-hidden ${tool === 'line' ? 'pointer-events-none' : (tool === null ? 'cursor-default' : '')}`;
   
   return isEditing ? <textarea 
     onBlur={handleBlur}
@@ -43,10 +43,10 @@ export default function TextBox({ x, y, ...props }: Omit<Box, 'id'>) {
     }}
     value={text} 
     onInput={handleInput}
-  /> : <div className={className}
+  /> : <pre className={className}
     style={{
       left: `${x}px`,
       top: `${y}px`,
     }}
-  ><pre className="font">{text}</pre></div>
+  >{text}</pre>
 }
