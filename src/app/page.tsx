@@ -17,7 +17,7 @@ export default function Home() {
     <ToolProvider value={{ tool, setTool }}>
       <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
         <header className="fixed top-5 flex w-full justify-center z-50">
-          <div className="flex text-lg bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2">
+          <div className="flex text-sm bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2">
             <button type="button" className={`${btn} ${tool === null ? btnActive : ''}`} onClick={() => setTool(null)}>
               Mouse
             </button>
@@ -29,8 +29,8 @@ export default function Home() {
             </button>
           </div>
         </header>
-        <main className="flex flex-col items-center justify-center">
-          <div className="flex flex-col items-center justify-center mt-[120px] mb-5">
+        <main className="flex flex-col items-center justify-center pb-10">
+          <div className="flex flex-col items-center justify-center mt-[80px] mb-5">
             <h1 className="text-4xl mb-5">PDF Polygon Annotator</h1>
             <p className="mb-2">Annotate PDFs with polygons and text</p>
           </div>

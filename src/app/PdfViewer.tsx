@@ -3,7 +3,7 @@
 import * as pdfjsLib from "pdfjs-dist";
 import { useContext, useEffect, useRef, useState } from "react";
 import { btn } from "./page";
-import { Line, Point, Mode, Box, Dimension } from "@/types";
+import { Line, Point, Box, Dimension } from "@/types";
 import LineGroupBox from "./LineGroupBox";
 import TextBox from "./TextBox";
 import { redraw, drawLine, getGroupsOfConnectedLinesByIndices, getNearestRenderedPoint, getDimensionsOfLineGroup } from "@/helpers/lines";
@@ -29,17 +29,6 @@ export default function PdfViewer() {
   const [lastCreatedLineIndex, setLastCreatedLineIndex] = useState<number>(0);
   const [lastCreatedLineGroup, setLastCreatedLineGroup] = useState<string|null>(null);
 
-  useEffect(() => {
-    async function convertBufferToPdf(buffer: Uint8Array) {
-      const loadingTask = pdfjsLib.getDocument({ data: buffer });
-      const doc = await loadingTask.promise;
-      setTotalPages(doc.numPages);
-      setPdfDoc(doc);
-    }
-
-    if (fileBuffer) convertBufferToPdf(fileBuffer);
-  }, [fileBuffer]);
-
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -47,6 +36,22 @@ export default function PdfViewer() {
     setFileBuffer(buffer);
   };
 
+  /**
+   * Convert the file buffer to a PDF document
+   */
+  useEffect(() => {
+    async function convertBufferToPdf(buffer: Uint8Array) {
+      const loadingTask = pdfjsLib.getDocument({ data: buffer });
+      const doc = await loadingTask.promise;
+      setTotalPages(doc.numPages);
+      setPdfDoc(doc);
+    }
+    if (fileBuffer) convertBufferToPdf(fileBuffer);
+  }, [fileBuffer]);
+
+  /**
+   * Render the current page of the PDF document
+   */
   useEffect(() => {
     async function getPage(pageNumber: number) {
       if (!pdfDoc) return;
@@ -197,11 +202,12 @@ export default function PdfViewer() {
 
   return <div className="flex flex-col items-center justify-center">
     <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
-    <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !p-3 text-xl mb-5`}>
+    <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !px-3 !py-2 text-base mb-5`}>
       Upload PDF
     </label>
     <div className="relative overflow-hidden rounded-t-lg">
       {totalPages > 1 && (
+        // Page navigation bar
         <div className="flex w-full text-sm justify-between bg-[#1c1618] z-[50] px-4 p-2 rounded-t-lg">
           {currentPage > 1 ? (
             <button type="button" className={`text-white cursor-pointer hover:underline`} onClick={handlePreviousPage}>
@@ -218,6 +224,7 @@ export default function PdfViewer() {
           ) : <div></div>}
         </div>
       )}
+      {/* PDF canvas */}
       <div className="relative w-full h-full">
         <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-b-2xl shadow-2xl relative w-full h-full`}></canvas>
         <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
