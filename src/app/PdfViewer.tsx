@@ -2,14 +2,14 @@
 
 import { useContext, useEffect, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-import { btn } from "./page";
+import { btn, bgPrimary, bgSecondary } from "./page";
 import PdfPage from "./PdfPage";
 import { ToolContext } from "./ToolContext";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 export default function PdfViewer() {
-  const { setIsLoadingPdf: setLoadingPdf, setHasPdf, isLoadingPdf } = useContext(ToolContext);
+  const { setTool, setIsLoadingPdf: setLoadingPdf, setHasPdf, isLoadingPdf } = useContext(ToolContext);
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy|null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -69,11 +69,21 @@ export default function PdfViewer() {
     });
   }
 
+  const handleDownloadPdf = () => {
+    setTool(null);
+  }
+
   return <div className="flex flex-col items-center justify-center">
-    <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
-    <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !px-3 !py-2 text-base mb-5`}>
-      Upload PDF
-    </label>
+    <div className="flex justify-between w-full">
+      <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
+      <label htmlFor="pdf-file" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`}>
+        Upload PDF
+      </label>
+
+      {pdfDoc && <button type="button" className={`${btn} ${bgSecondary} !px-3 !py-2 text-base mb-5`} onClick={handleDownloadPdf}>
+        Download PDF
+      </button>}
+    </div>
     <div className="relative overflow-hidden rounded-t-lg">
       {/* Page navigation bar */}
       {totalPages > 0 && (
@@ -99,8 +109,8 @@ export default function PdfViewer() {
             currentPage={currentPage} 
           />
         ))}
-        {isLoadingPdf && <div className="bg-[#1c1618] text-white p-2 rounded-b-lg">Loading PDF...</div>}
-        {error && <div className="bg-[#1c1618] text-red-500 p-2 rounded-b-lg">{error}</div>}
+        {isLoadingPdf && <div className={`${bgSecondary} text-white p-2 rounded-b-lg`}>Loading PDF...</div>}
+        {error && <div className={`${bgSecondary} text-red-500 p-2 rounded-b-lg`}>{error}</div>}
       </div>
     </div>
   </div>;
