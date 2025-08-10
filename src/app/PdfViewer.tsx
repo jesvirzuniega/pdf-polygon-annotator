@@ -1,17 +1,20 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { btn } from "./page";
 import PdfPage from "./PdfPage";
+import { ToolContext } from "./ToolContext";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 export default function PdfViewer() {
+  const { setLoadingPdf, setHasPdf, isLoadingPdf } = useContext(ToolContext);
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy|null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(0);
+  const [error, setError] = useState<string|null>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -24,21 +27,34 @@ export default function PdfViewer() {
    * Convert the file buffer to a PDF document
    */
   useEffect(() => {
+    function reset() {
+      setHasPdf(false);
+      setPdfDoc(null);
+      setCurrentPage(1);
+      setTotalPages(0);
+    }
+
     async function convertBufferToPdf(buffer: Uint8Array) {
       const loadingTask = pdfjsLib.getDocument({ data: buffer });
-      const doc = await loadingTask.promise;
+      setLoadingPdf(true);
+      reset();
+      const doc = await loadingTask.promise.catch(() => {
+        setError('Cannot load PDF. It may be damaged or corrupted');
+        setLoadingPdf(false);
+        return;
+      });
+      if (!doc) return;
+
       setTotalPages(doc.numPages);
+      setHasPdf(true);
       setPdfDoc(doc);
+      setLoadingPdf(false);
+      setError(null);
     }
     if (fileBuffer) convertBufferToPdf(fileBuffer);
-  }, [fileBuffer]);
+  }, [fileBuffer, setLoadingPdf, setHasPdf]);
 
-  /**
-   * Render the current page of the PDF document
-   */
-  useEffect(() => {
-    //
-  }, [currentPage, pdfDoc]);
+  // currentPage is consumed by child components; no side-effect needed here
 
   const handlePreviousPage = () => {
     setCurrentPage(prev => {
@@ -84,6 +100,8 @@ export default function PdfViewer() {
             currentPage={currentPage} 
           />
         ))}
+        {isLoadingPdf && <div className="bg-[#1c1618] text-white p-2 rounded-b-lg">Loading PDF...</div>}
+        {error && <div className="bg-[#1c1618] text-red-500 p-2 rounded-b-lg">{error}</div>}
       </div>
     </div>
   </div>;

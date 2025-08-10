@@ -38,17 +38,20 @@ export default function PdfPage({ pdfDoc, pageNumber, currentPage }: Props) {
     setLastCreatedLineGroup(null);
   }
 
+  async function getPage(pdfDoc: pdfjsLib.PDFDocumentProxy, p: number) {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(p);
+    if (page) setPdfPage(page);
+  }
+
   /**
    * Get the page
    */
   useEffect(() => {
-    async function getPage(pageNumber: number) {
-      if (!pdfDoc) return;
-      const page = await pdfDoc.getPage(pageNumber);
-      if (page) setPdfPage(page);
+    if (pdfDoc) {
+      getPage(pdfDoc, pageNumber)
+      resetPageData()
     }
-    getPage(pageNumber)
-    resetPageData()
   }, [pdfDoc, pageNumber]);
 
   /**

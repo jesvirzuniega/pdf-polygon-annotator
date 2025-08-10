@@ -12,12 +12,14 @@ const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
 
 export default function Home() {
   const [tool, setTool] = useState<Mode|null>(null);
+  const [loadingPdf, setLoadingPdf] = useState<boolean>(false);
+  const [hasPdf, setHasPdf] = useState<boolean>(false);
 
   return (
-    <ToolProvider value={{ tool, setTool }}>
+    <ToolProvider value={{ tool, setTool, setLoadingPdf, setHasPdf }}>
       <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
-        <header className="fixed top-5 flex w-full justify-center z-50">
-          <div className="flex text-sm bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2">
+        {hasPdf && <header className="fixed top-5 flex w-full justify-center z-50">
+          <div className={`flex text-sm bg-[#1c1618] shadow-xl p-1 rounded-2xl gap-2 ${loadingPdf ? 'pointer-events-none' : ''}`}>
             <button type="button" className={`${btn} ${tool === null ? btnActive : ''}`} onClick={() => setTool(null)}>
               Mouse
             </button>
@@ -28,7 +30,7 @@ export default function Home() {
               Line
             </button>
           </div>
-        </header>
+        </header>}
         <main className="flex flex-col items-center justify-center pb-10">
           <div className="flex flex-col items-center justify-center mt-[80px] mb-5">
             <h1 className="text-4xl mb-5">PDF Polygon Annotator</h1>
