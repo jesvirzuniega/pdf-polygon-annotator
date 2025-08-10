@@ -1,10 +1,13 @@
 'use client';
 
+import * as pdfjsLib from "pdfjs-dist";
 import { useEffect, useRef, useState } from "react";
 import { btn } from "./page";
-import { Line, Point, Mode } from "@/types";
-import * as pdfjsLib from "pdfjs-dist";
+import { Line, Point, Mode, Box, Dimension } from "@/types";
+import LineGroupBox from "./LineGroupBox";
+import TextBox from "./TextBox";
 import { redraw, drawLine, getGroupsOfConnectedLinesByIndices, getNearestRenderedPoint, getDimensionsOfLineGroup } from "@/helpers/lines";
+
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 interface Props {
@@ -17,11 +20,12 @@ export default function PdfViewer({ tool, setTool }: Props) {
   const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
   const pdfCanvasOverlayRef = useRef<HTMLDivElement>(null);
   const pdfDrawCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
+  // const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
   const [renderedLines, setRenderedLines] = useState<Line[]>([]);
   const [lines, setLines] = useState<Point[]>([]);
   const [lineGroups, setLineGroups] = useState<Record<string, Line[]>>({});
-  const [groupingBoxes, setGroupingBoxes] = useState<Box[]>([]);
+  const [lineGroupBoxes, setLineGroupBoxes] = useState<Array<Box & Dimension>>([]);
+  const [textBoxes, setTextBoxes] = useState<Box[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -65,7 +69,14 @@ export default function PdfViewer({ tool, setTool }: Props) {
       viewport: viewport
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any;
+    
     page.render(renderContext);
+    resetCanvasOverlay();
+  }
+
+  const resetCanvasOverlay = () => {
+    setRenderedLines([]);
+    setLines([]);
   }
 
   const canvasOverlayOnClickHandler = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -77,18 +88,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
   };
 
   const spawnTextBox = (x: number, y: number) => {
-    const textBox = document.createElement('textarea');
-    textBox.className = 'absolute max-w-[240px] h-auto text-sm p-5 border-1 border-dashed border-transparent focus:border-black text-black text-2xl bg-transparent focus:outline-none z-10 resize-none overflow-hidden';
-    textBox.style.left = `${x}px`;
-    textBox.style.top = `${y}px`;
-    textBox.value = '';
-    pdfCanvasOverlayRef.current?.appendChild(textBox);
-    textBox.focus();
-    textBox.addEventListener('input', e => {
-      if (!e.target) return;
-      const target = e.target as HTMLTextAreaElement;
-      target.style.height = target.scrollHeight + 'px';
-    });
+    setTextBoxes([...textBoxes, { id: crypto.randomUUID(), x, y }]);
     setTool(null);
   };
 
@@ -113,7 +113,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
    * Re-renders the grouping boxes when the line groups change
    */
   useEffect(() => {
-    setGroupingBoxes(Object.entries(lineGroups).map(([id, group]) => { 
+    setLineGroupBoxes(Object.entries(lineGroups).map(([id, group]) => { 
       const { minX, minY, maxX, maxY } = getDimensionsOfLineGroup(group);
       return {
         id, 
@@ -164,7 +164,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
 
 
   return <div className="flex flex-col items-center justify-center">
-    <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onChange={handleFileChange}/>
+    <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
     <label htmlFor="pdf-file" className={`${btn} bg-[#da3668] !p-3 text-xl mb-5`}>
       Upload PDF
     </label>
@@ -172,8 +172,16 @@ export default function PdfViewer({ tool, setTool }: Props) {
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
       <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
       <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={canvasOverlayOnClickHandler}>
-        {groupingBoxes.map((box) => 
-          <GroupingBox 
+        {textBoxes.map((box) => 
+          <TextBox 
+            key={box.id} 
+            x={box.x} 
+            y={box.y} 
+            tool={tool} 
+          />)
+        }
+        {lineGroupBoxes.map((box) => 
+          <LineGroupBox 
             key={box.id} 
             x={box.x} 
             y={box.y} 
@@ -185,30 +193,4 @@ export default function PdfViewer({ tool, setTool }: Props) {
       </div>
     </div>
   </div>;
-}
-
-type Box = {
-  id: string
-  x: number
-  y: number
-  width: number
-  height: number
-}
-
-interface GroupingBoxProps extends Omit<Box, 'id'> {
-  tool: Mode | null
-}
-
-function GroupingBox({ x, y, width, height, tool }: GroupingBoxProps) {
-  const spacing = 8;
-  const style = {
-    left: `${x - spacing}px`,
-    top: `${y - spacing}px`,
-    width: `${width + spacing * 2}px`,
-    height: `${height + spacing * 2}px`,
-  }
-  return <div 
-    className={`movable-object absolute z-10 border-1 border-dashed p-2 border-black ${tool === 'line' ? 'pointer-events-none' : ''}`} 
-    style={style}>
-  </div>
 }
