@@ -6,10 +6,13 @@ import { Mode } from "@/types";
 import { ToolProvider } from "./ToolContext";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import withTooltip from "./withTooltip";
 
 export const btn = 'font-semibold py-1 px-2 cursor-pointer rounded-2xl transition-color duration-300'
 export const bgPrimary = 'bg-[#da3668]'
 export const bgSecondary = 'bg-[#1c1618]'
+
+const ButtonWithTooltip = withTooltip((props) => <button type="button" {...props}></button>);
 
 const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
 
@@ -30,7 +33,7 @@ export default function Home() {
 
   const initialYs = -0
   const finalYs = -50
-  const durations = 0.5
+  const durations = 1.5
   const easings = "easeOut"
 
   return (
@@ -38,15 +41,15 @@ export default function Home() {
       <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
         {hasPdf && <header className="fixed top-5 flex w-full justify-center z-50">
           <div className={`flex text-sm ${bgSecondary} shadow-xl p-1 rounded-2xl gap-2 ${isLoadingPdf ? 'pointer-events-none' : ''}`}>
-            <button type="button" className={`${btn} ${tool === null ? bgPrimary : ''}`} onClick={() => setTool(null)}>
+            <ButtonWithTooltip message="Mouse" className={`${btn} ${tool === null ? bgPrimary : ''}`} onClick={() => setTool(null)}>
               Mouse
-            </button>
-            <button type="button" className={`${btn} ${tool === 'text' ? bgPrimary : ''}`} onClick={() => setTool('text')}>
+            </ButtonWithTooltip>
+            <ButtonWithTooltip message="Annotate with text" className={`${btn} ${tool === 'text' ? bgPrimary : ''}`} onClick={() => setTool('text')}>
               Text
-            </button>
-            <button type="button" className={`${btn} ${tool === 'line' ? bgPrimary : ''}`} onClick={() => setTool('line')}>
+            </ButtonWithTooltip>
+            <ButtonWithTooltip message="Draw a line. Create polygons and merge them by connecting the lines." className={`${btn} ${tool === 'line' ? bgPrimary : ''}`} onClick={() => setTool('line')}>
               Line
-            </button>
+            </ButtonWithTooltip>
           </div>
         </header>}
         <main className="relative w-full flex flex-col items-center justify-center pb-10 z-10">

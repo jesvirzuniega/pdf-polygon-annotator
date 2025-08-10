@@ -5,6 +5,7 @@ import * as pdfjsLib from "pdfjs-dist";
 import { btn, bgPrimary, bgSecondary } from "./page";
 import PdfPage from "./PdfPage";
 import { ToolContext } from "./ToolContext";
+import { motion } from "motion/react";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 

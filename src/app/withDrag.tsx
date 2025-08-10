@@ -5,6 +5,9 @@ interface Props extends Required<Box> {
   setPoint: (point: Point) => void;
 }
 
+/**
+ * TODO: make this HOC work. Not enough time to do it.
+ */
 export default function withDrag<P extends Props>(WrappedComponent: React.ComponentType<P>) {
   return function ComponentWithDrag({ setPoint, x, y, ...props }: P) {
     const [isDragging, setIsDragging] = useState(false);
