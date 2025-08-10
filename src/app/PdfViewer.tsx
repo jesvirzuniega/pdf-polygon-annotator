@@ -20,7 +20,8 @@ export default function PdfViewer({ tool, setTool }: Props) {
   const [pageSize, setPageSize] = useState({ width: 0, height: 0 });
   const [renderedLines, setRenderedLines] = useState<Line[]>([]);
   const [lines, setLines] = useState<Point[]>([]);
-  const [groupingBoxes, setGroupingBoxes] = useState<{ x: number, y: number, width: number, height: number }[]>([]);
+  const [lineGroups, setLineGroups] = useState<Record<string, Line[]>>({});
+  const [groupingBoxes, setGroupingBoxes] = useState<Box[]>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -67,7 +68,7 @@ export default function PdfViewer({ tool, setTool }: Props) {
     page.render(renderContext);
   }
 
-  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const canvasOverlayOnClickHandler = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target !== pdfCanvasOverlayRef.current) return;
     const x = e.nativeEvent.offsetX;
     const y = e.nativeEvent.offsetY;
@@ -95,12 +96,38 @@ export default function PdfViewer({ tool, setTool }: Props) {
     setLines([...lines, getNearestRenderedPoint(renderedLines, { x, y }) || { x, y }]);
   };
 
+  /**
+   * Groups the lines by their indices
+   */
   useEffect(() => {
-    const lineGroups = getGroupsOfConnectedLinesByIndices(renderedLines);
-    const dimensions = lineGroups.map(group => getDimensionsOfLineGroup(group.map(index => renderedLines[index])));
-    setGroupingBoxes(dimensions.map(({ minX, minY, maxX, maxY }) => ({ x: minX, y: minY, width: maxX - minX, height: maxY - minY })));
+    const groups = getGroupsOfConnectedLinesByIndices(renderedLines);
+    const record: typeof lineGroups = {};
+    for (const group of groups) {
+      const groupId = crypto.randomUUID()
+      record[groupId] = group.map(index => renderedLines[index]);
+    }
+    setLineGroups(record);
   }, [renderedLines])
 
+  /**
+   * Re-renders the grouping boxes when the line groups change
+   */
+  useEffect(() => {
+    setGroupingBoxes(Object.entries(lineGroups).map(([id, group]) => { 
+      const { minX, minY, maxX, maxY } = getDimensionsOfLineGroup(group);
+      return {
+        id, 
+        x: minX, 
+        y: minY, 
+        width: maxX - minX, 
+        height: maxY - minY
+      }
+    }));
+  }, [lineGroups])
+
+  /**
+   * Draws the lines on the canvas when lines are added or removed
+   */
   useEffect(() => {
     const canvas = pdfDrawCanvasRef.current!;
     const context = canvas.getContext('2d')!;
@@ -144,14 +171,35 @@ export default function PdfViewer({ tool, setTool }: Props) {
     <div className="relative overflow-hidden">
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-2xl shadow-2xl relative w-full h-full`}></canvas>
       <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
-      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={onClick}>
-        {groupingBoxes.map((box, index) => <GroupingBox key={index} {...box} />)}
+      <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20`} onClick={canvasOverlayOnClickHandler}>
+        {groupingBoxes.map((box) => 
+          <GroupingBox 
+            key={box.id} 
+            x={box.x} 
+            y={box.y} 
+            width={box.width} 
+            height={box.height} 
+            tool={tool} 
+          />)
+        }
       </div>
     </div>
   </div>;
 }
 
-function GroupingBox({ x, y, width, height }: { x: number, y: number, width: number, height: number }) {
+type Box = {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+interface GroupingBoxProps extends Omit<Box, 'id'> {
+  tool: Mode | null
+}
+
+function GroupingBox({ x, y, width, height, tool }: GroupingBoxProps) {
   const spacing = 8;
   const style = {
     left: `${x - spacing}px`,
@@ -160,7 +208,7 @@ function GroupingBox({ x, y, width, height }: { x: number, y: number, width: num
     height: `${height + spacing * 2}px`,
   }
   return <div 
-    className="movable-object absolute z-10 border-1 border-dashed border-black p-2 pointer-events-none" 
+    className={`movable-object absolute z-10 border-1 border-dashed p-2 border-black ${tool === 'line' ? 'pointer-events-none' : ''}`} 
     style={style}>
   </div>
 }
