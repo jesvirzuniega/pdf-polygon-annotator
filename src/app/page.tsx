@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Mode } from "@/types";
 import { ToolProvider } from "./ToolContext";
+import Image from "next/image";
 
 export const btn = 'font-semibold py-1 px-2 cursor-pointer rounded-lg transition-color duration-300'
 export const bgPrimary = 'bg-[#da3668]'
@@ -42,7 +43,7 @@ export default function Home() {
             </button>
           </div>
         </header>}
-        <main className="flex flex-col items-center justify-center pb-10">
+        <main className="relative w-full flex flex-col items-center justify-center pb-10 z-10">
           <div className="flex flex-col items-center justify-center mt-[80px] mb-5">
             <h1 className="text-4xl mb-5">PDF Polygon Annotator</h1>
             <p className="mb-2">Annotate PDFs with polygons and text</p>
@@ -50,6 +51,10 @@ export default function Home() {
           </div>
           <PdfViewer/>
         </main>
+        <div className="absolute flex justify-between px-[15vw] w-full top-0 h-full overflow-hidden">
+          <Image src="/structure.png" alt="structure" width={820} height={1200} className="opacity-20" objectFit="contain" />
+          <Image src="/structure.png" alt="structure" width={327} height={940} className="opacity-20 h-[940px] scale-x-[-1]" objectFit="contain" />
+        </div>
       </div>
     </ToolProvider>
   );

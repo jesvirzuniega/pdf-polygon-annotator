@@ -74,7 +74,7 @@ export default function PdfViewer() {
   }
 
   return <div className="flex flex-col items-center justify-center">
-    <div className="flex justify-between w-full">
+    <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
       <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
       <label htmlFor="pdf-file" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`}>
         Upload PDF
