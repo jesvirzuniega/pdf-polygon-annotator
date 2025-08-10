@@ -1,5 +1,5 @@
 import React, { useRef, useState } from "react";
-import { bgSecondary } from "./page";
+import { bgSecondary } from "../common";
 import { Point } from "@/types";
 
 interface Props extends React.HTMLAttributes<HTMLElement> {

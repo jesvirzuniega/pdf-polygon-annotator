@@ -3,17 +3,14 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Mode } from "@/types";
-import { ToolProvider } from "./ToolContext";
+import { ToolProvider } from "./components/ToolContext";
 import { motion } from "framer-motion";
-import withTooltip from "./withTooltip";
-
-export const btn = 'font-semibold py-1 px-2 cursor-pointer rounded-2xl transition-color duration-300'
-export const bgPrimary = 'bg-[#da3668]'
-export const bgSecondary = 'bg-[#1c1618]'
+import withTooltip from "./hocs/withTooltip";
+import { bgSecondary, btn, bgPrimary } from "./common";
 
 const ButtonWithTooltip = withTooltip((props) => <button type="button" {...props}></button>);
 
-const PdfViewer = dynamic(() => import('./PdfViewer'), { ssr: false });
+const PdfViewer = dynamic(() => import('./components/PdfViewer'), { ssr: false });
 
 export default function Home() {
   const [tool, setTool] = useState<Mode|null>(null);

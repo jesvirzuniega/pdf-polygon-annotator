@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
-import { btn, bgPrimary, bgSecondary } from "./page";
+import { btn, bgPrimary, bgSecondary } from "../common";
 import PdfPage from "./PdfPage";
 import { ToolContext } from "./ToolContext";
 import html2canvas from "html2canvas";
