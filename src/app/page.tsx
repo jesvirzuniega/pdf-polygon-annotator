@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Mode } from "@/types";
 import { ToolProvider } from "./ToolContext";
-import Image from "next/image";
 import { motion } from "framer-motion";
 import withTooltip from "./withTooltip";
 
@@ -20,6 +19,7 @@ export default function Home() {
   const [tool, setTool] = useState<Mode|null>(null);
   const [isLoadingPdf, setIsLoadingPdf] = useState<boolean>(false);
   const [hasPdf, setHasPdf] = useState<boolean>(false);
+  const [generatingDownloadUrl, setGeneratingDownloadUrl] = useState<boolean>(false);
 
   // ON 'esc' key press, set tool to null
   useEffect(() => {
@@ -37,12 +37,12 @@ export default function Home() {
   const easings = "easeOut"
 
   return (
-    <ToolProvider value={{ tool, setTool, setIsLoadingPdf, setHasPdf, isLoadingPdf }}>
+    <ToolProvider value={{ tool, setTool, setIsLoadingPdf, setHasPdf, isLoadingPdf, generatingDownloadUrl, setGeneratingDownloadUrl }}>
       <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
         {hasPdf && <header className="fixed top-5 flex w-full justify-center z-50">
-          <div className={`flex text-sm ${bgSecondary} shadow-xl p-1 rounded-2xl gap-2 ${isLoadingPdf ? 'pointer-events-none' : ''}`}>
-            <ButtonWithTooltip message="Mouse" className={`${btn} ${tool === null ? bgPrimary : ''}`} onClick={() => setTool(null)}>
-              Mouse
+          <div className={`flex text-sm ${bgSecondary} shadow-xl p-1 rounded-2xl gap-2 ${isLoadingPdf || generatingDownloadUrl ? 'pointer-events-none' : ''}`}>
+            <ButtonWithTooltip message="Cursor" className={`${btn} ${tool === null ? bgPrimary : ''}`} onClick={() => setTool(null)}>
+              Cursor
             </ButtonWithTooltip>
             <ButtonWithTooltip message="Annotate with text" className={`${btn} ${tool === 'text' ? bgPrimary : ''}`} onClick={() => setTool('text')}>
               Text

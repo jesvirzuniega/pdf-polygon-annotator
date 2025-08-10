@@ -7,12 +7,16 @@ export const ToolContext = createContext<{
   setTool: Dispatch<SetStateAction<Mode | null>>;
   setIsLoadingPdf: Dispatch<SetStateAction<boolean>>;
   setHasPdf: Dispatch<SetStateAction<boolean>>;
+  generatingDownloadUrl: boolean;
+  setGeneratingDownloadUrl: Dispatch<SetStateAction<boolean>>;
 }>({
   tool: null,
   isLoadingPdf: false,
   setTool: () => {},
   setIsLoadingPdf: () => {},
   setHasPdf: () => {},
+  generatingDownloadUrl: false,
+  setGeneratingDownloadUrl: () => {},
 });
 
 export const ToolProvider = ToolContext.Provider;

@@ -1,21 +1,23 @@
 'use client';
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import * as pdfjsLib from "pdfjs-dist";
 import { btn, bgPrimary, bgSecondary } from "./page";
 import PdfPage from "./PdfPage";
 import { ToolContext } from "./ToolContext";
-import { motion } from "motion/react";
+import html2canvas from "html2canvas";
+import { PDFDocument } from "pdf-lib";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
 export default function PdfViewer() {
-  const { setTool, setIsLoadingPdf: setLoadingPdf, setHasPdf, isLoadingPdf } = useContext(ToolContext);
+  const { setTool, setIsLoadingPdf: setLoadingPdf, setHasPdf, isLoadingPdf, generatingDownloadUrl, setGeneratingDownloadUrl } = useContext(ToolContext);
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy|null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(0);
   const [error, setError] = useState<string|null>(null);
+  const canvasWrapperRefs = useRef<Array<HTMLDivElement|null>>([]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -70,9 +72,55 @@ export default function PdfViewer() {
     });
   }
 
-  const handleDownloadPdf = () => {
+  const handleDownloadPdf = async () => {
     setTool(null);
+    // Add delay to ensure states are updated before generating the PDF
+    setTimeout(async () => {
+      const blobUrl = await generatePdfDownloadUrl();
+      if (!blobUrl) return;
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      const uuid = crypto.randomUUID();
+      link.download = `${uuid}.pdf`;
+      link.click();
+    }, 500);
   }
+
+  async function generatePdfDownloadUrl() {
+    setGeneratingDownloadUrl(true);
+    try {
+      const createdPdfDoc = await PDFDocument.create();
+      // Draw each page of the PDF document
+      for (let i = 1; i <= totalPages; i++) {
+        const originalDisplay = canvasWrapperRefs.current[i]!.style.display;
+        canvasWrapperRefs.current[i]!.style.display = 'block';
+        const canvas = await html2canvas(canvasWrapperRefs.current[i]!);
+        const canvasWrapperDataUrl = canvas.toDataURL('image/png');
+        const page = createdPdfDoc.addPage([canvas.width, canvas.height]);
+        const image = await createdPdfDoc.embedPng(canvasWrapperDataUrl);
+        page.drawImage(image, {
+          x: 0,
+          y: 0,
+          width: canvas.width,
+          height: canvas.height
+        });
+        canvasWrapperRefs.current[i]!.style.display = originalDisplay;
+      }
+      const pdfBytes = await createdPdfDoc.save();
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const blobUrl = URL.createObjectURL(blob);
+      return blobUrl;
+    } catch (error) {
+      setError('Error generating PDF download URL');
+      console.error(error);
+      return null;
+    } finally {
+      setGeneratingDownloadUrl(false);
+    }
+  }
+
+  // Temporarily hide the PDF viewer when generating the download URL
+  const offscreen = 'absolute left-[-9999px]';
 
   return <div className="flex flex-col items-center justify-center">
     <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
@@ -80,12 +128,18 @@ export default function PdfViewer() {
       <label htmlFor="pdf-file" className={`${btn} ${pdfDoc ? bgSecondary : bgPrimary} !px-3 !py-2 text-base mb-5`}>
         {pdfDoc ? 'Change' : 'Upload PDF'}
       </label>
-
-      {pdfDoc && <button type="button" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`} onClick={handleDownloadPdf}>
+      {pdfDoc && <button type="button" className={`${btn} ${bgPrimary} ${generatingDownloadUrl ? 'invisible pointer-events-none' : ''} !px-3 !py-2 text-base mb-5`} onClick={handleDownloadPdf}>
         Download
       </button>}
     </div>
-    <div className="relative overflow-hidden rounded-t-lg">
+
+    {/* Loading / error states */}
+    {generatingDownloadUrl && <div className={`${bgSecondary} text-white p-2 rounded-lg`}>Generating PDF. This may take a moment depending on the size of the PDF...</div>}
+    {isLoadingPdf && <div className={`${bgSecondary} text-white p-2 rounded-lg`}>Loading PDF...</div>}
+    {error && <div className={`${bgSecondary} text-red-500 p-2 rounded-lg`}>{error}</div>}
+
+    {/* Main PDF viewer */}
+    <div className={`relative overflow-hidden rounded-t-lg ${isLoadingPdf || error ? 'hidden' : ''} ${generatingDownloadUrl ? offscreen : ''}`}>
       {/* Page navigation bar */}
       {totalPages > 0 && (
         <div className="flex w-full text-sm justify-between bg-[#1c1618] z-[50] px-4 p-2 rounded-t-lg">
@@ -108,10 +162,9 @@ export default function PdfViewer() {
             pdfDoc={pdfDoc} 
             pageNumber={index + 1} 
             currentPage={currentPage} 
+            canvasWrapperRefs={canvasWrapperRefs}
           />
         ))}
-        {isLoadingPdf && <div className={`${bgSecondary} text-white p-2 rounded-b-lg`}>Loading PDF...</div>}
-        {error && <div className={`${bgSecondary} text-red-500 p-2 rounded-b-lg`}>{error}</div>}
       </div>
     </div>
   </div>;

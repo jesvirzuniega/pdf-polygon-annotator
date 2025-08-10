@@ -9,8 +9,10 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "html2canvas": "^1.4.1",
     "motion": "^12.23.12",
     "next": "15.4.6",
+    "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^5.4.54",
     "react": "19.1.0",
     "react-dom": "19.1.0"

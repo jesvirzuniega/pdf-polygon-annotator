@@ -1,4 +1,4 @@
-import { useContext, useEffect, useRef, useState } from "react";
+import { RefObject, useContext, useEffect, useRef, useState } from "react";
 import { Line, Point, Box, Dimension } from "@/types";
 import LineGroupBox from "./LineGroupBox";
 import TextBox from "./TextBox";
@@ -12,10 +12,11 @@ interface Props {
   pdfDoc: pdfjsLib.PDFDocumentProxy;
   pageNumber: number;
   currentPage: number;
-}
+  canvasWrapperRefs: RefObject<Array<HTMLDivElement|null>>;
+} 
 
-export default function PdfPage({ pdfDoc, pageNumber, currentPage }: Props) {
-  const { tool, setTool } = useContext(ToolContext);
+export default function PdfPage({ pdfDoc, pageNumber, currentPage, canvasWrapperRefs }: Props) {
+  const { tool, setTool } = useContext(ToolContext);  
   const [pdfPage, setPdfPage] = useState<pdfjsLib.PDFPageProxy|null>(null);
   const pdfCanvasRef = useRef<HTMLCanvasElement>(null);
   const pdfCanvasOverlayRef = useRef<HTMLDivElement>(null);
@@ -186,7 +187,7 @@ export default function PdfPage({ pdfDoc, pageNumber, currentPage }: Props) {
   }, [lines, renderedLines]);
 
   return (
-    <div className={`relative w-full h-full ${currentPage === pageNumber ? 'block' : 'hidden'}`}>
+    <div ref={(el) => { canvasWrapperRefs.current[pageNumber] = el; }} className={`relative w-full h-full ${currentPage === pageNumber ? 'block' : 'hidden'}`}>
       <canvas id="canvas" ref={pdfCanvasRef} className={`rounded-b-2xl shadow-2xl relative w-full h-full`}></canvas>
       <canvas id="canvas-draw" ref={pdfDrawCanvasRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-10`}></canvas>
       <div id="canvas-overlay" ref={pdfCanvasOverlayRef} className={`absolute overflow-hidden top-0 left-0 w-full h-full z-20 ${tool === 'line' ? 'cursor-crosshair' : (tool === 'text' ? 'cursor-text' : '')}`} onClick={canvasOverlayOnClickHandler}>
