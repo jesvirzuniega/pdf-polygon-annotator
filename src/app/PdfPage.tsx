@@ -93,16 +93,10 @@ export default function PdfPage({ pdfDoc, pageNumber, currentPage }: Props) {
       } as any;
       
       page.render(renderContext);
-      resetCanvasOverlay();
     }  
 
     if (pdfPage) renderPdfPage(pdfPage);
   }, [pdfPage]);
-
-  const resetCanvasOverlay = () => {
-    setRenderedLines([]);
-    setLines([]);
-  }
 
   const canvasOverlayOnClickHandler = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target !== pdfCanvasOverlayRef.current) return;
