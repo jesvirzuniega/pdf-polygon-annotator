@@ -44,11 +44,11 @@ export const getGroupsOfConnectedLinesByIndices = (lines: Line[]) => {
 }
 
 // This is used to improve user experience by snapping to the nearest rendered point
-export const getNearestRenderedPoint = (renderedLines: Line[], { x ,y }: Point, magnetSize: number = 20) => {
+export const getNearestRenderedPoint = (renderedLines: Line[], { x ,y }: Point, magnetSize: number = 20, scale: number = 1) => {
   return renderedLines.reduce((acc: Point | null, [p1, p2]) => {
     if (acc) return acc;
-    const diff1 = Math.abs(p1.x - x) + Math.abs(p1.y - y);
-    const diff2 = Math.abs(p2.x - x) + Math.abs(p2.y - y);
+    const diff1 = Math.abs(scalePoint(p1, scale).x - x) + Math.abs(scalePoint(p1, scale).y - y);
+    const diff2 = Math.abs(scalePoint(p2, scale).x - x) + Math.abs(scalePoint(p2, scale).y - y);
 
     if (diff1 <= magnetSize) return p1;
     if (diff2 <= magnetSize) return p2;
@@ -75,9 +75,24 @@ export const drawLine = (renderedLines: Line[], context: CanvasRenderingContext2
   return nearestPoint
 }
 
-export const redraw = (renderedLines: Line[], context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+export const redraw = (renderedLines: Line[], context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, pageScale: number = 1) => {
   context.clearRect(0, 0, canvas.width, canvas.height);
-  renderedLines.forEach(([p1, p2]) => drawLine(renderedLines, context, p1, p2, false, true));
+  renderedLines.forEach(([p1, p2]) => drawLine(renderedLines, context, scalePoint(p1, pageScale), scalePoint(p2, pageScale), false, true));
+}
+
+export const scaleLines = (lines: Line[], scale: number): Line[] => {
+  return lines.map(([p1, p2]) => [
+    scalePoint(p1, scale),
+    scalePoint(p2, scale)
+  ] as Line);
+}
+
+export const scalePoint = (point: Point, scale: number): Point => {
+  return { x: point.x * scale, y: point.y * scale };
+}
+
+export const deScalePoint = (point: Point, scale: number): Point => {
+  return { x: point.x / scale, y: point.y / scale };
 }
 
 export const getDimensionsOfLineGroup = (lineGroup: Line[]) => {

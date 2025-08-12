@@ -18,6 +18,7 @@ export default function PdfViewer() {
   const [totalPages, setTotalPages] = useState<number>(0);
   const [error, setError] = useState<string|null>(null);
   const canvasWrapperRefs = useRef<Array<HTMLDivElement|null>>([]);
+  const [pageScale, setPageScale] = useState<number>(1);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -122,6 +123,15 @@ export default function PdfViewer() {
   // Temporarily hide the PDF viewer when generating the download URL
   const offscreen = 'absolute left-[-9999px]';
 
+  const handlePageScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(e.target.value);
+    if (value >= 25 && value <= 500) {
+      setPageScale(value / 100);
+    } else {
+      e.preventDefault();
+    }
+  }
+
   return <div className="flex flex-col items-center justify-center">
     <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
       <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
@@ -146,8 +156,12 @@ export default function PdfViewer() {
           <button type="button" className={`text-white cursor-pointer hover:underline ${currentPage === 1 ? 'opacity-0 pointer-events-none' : ''}`} onClick={handlePreviousPage}>
             Previous
           </button>
-          <div className="absolute left-1/2 -translate-x-1/2">
+          {/* <div className="flex-1">
             <p>Page {currentPage} of {totalPages}</p>
+          </div> */}
+          <div>
+            <label htmlFor="page-scale" className="text-white">Zoom:</label>&nbsp;
+            <input className="focus:outline-none" type="number" min={25} max={500} step={25} value={pageScale * 100} onInput={handlePageScaleChange} />
           </div>
           <button type="button" className={`text-white cursor-pointer hover:underline ${currentPage === totalPages ? 'opacity-0 pointer-events-none' : ''}`} onClick={handleNextPage}>
             Next
@@ -155,7 +169,7 @@ export default function PdfViewer() {
         </div>
       )}
       {/* Render each page of the PDF document */}
-      <div>
+      <div className={`${pdfDoc ? 'flex w-[800px] h-[70vh] bg-[#282828] overflow-auto rounded-b-2xl shadow-2xl' : ''}`}>
         {totalPages > 0 && pdfDoc && Array.from({ length: totalPages }).map((_, index) => (
           <PdfPage 
             key={index} 
@@ -163,6 +177,7 @@ export default function PdfViewer() {
             pageNumber={index + 1} 
             currentPage={currentPage} 
             canvasWrapperRefs={canvasWrapperRefs}
+            pageScale={pageScale}
           />
         ))}
       </div>
