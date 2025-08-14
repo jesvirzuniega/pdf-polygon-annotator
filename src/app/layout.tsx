@@ -27,7 +27,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased tracking-wider`}
       >
-        {children}
+        <div className="min-w-screen min-h-screen bg-gradient-to-t from-black to-[#731c37]">
+          {children}
+        </div>
       </body>
     </html>
   );
