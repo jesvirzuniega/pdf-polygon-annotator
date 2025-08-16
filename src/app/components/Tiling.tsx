@@ -1,11 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import useDebounce from "../hooks/useDebounce";
 import * as pdfjsLib from "pdfjs-dist";
 import { btn, bgPrimary, bgSecondary } from "../common";
 import { Point } from "motion";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
+
+const maxZoom = 5;
+const minZoom = 0.25;
+const debounceDelay = 100;
 
 export default function Tiling() {
   const [fileBuffer, setFileBuffer] = useState<Uint8Array|null>(null);
@@ -16,6 +21,8 @@ export default function Tiling() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [panPoint, setPanPoint] = useState<Point>({ x: 0, y: 0 });
+  const debouncedPageScale = useDebounce(pageScale, debounceDelay);
+  const debouncedPanPoint = useDebounce(panPoint, debounceDelay);
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -50,15 +57,17 @@ export default function Tiling() {
   }
 
   useEffect(() => {
-    const tileSize = window.innerHeight / 1;
+    const tileSize = Math.ceil(Math.sqrt(window.innerWidth * window.innerHeight));
 
     const renderPdfToCanvasTiles = async () => {
       const page = await pdfDoc!.getPage(currentPage);
       const canvas = canvasRef.current!;
-      const viewport = page.getViewport({ scale: pageScale });
+      const viewport = page.getViewport({ scale: debouncedPageScale });
       const context = canvas.getContext("2d")!;
       canvas.width = viewport.width;
       canvas.height = viewport.height;
+      canvas.style.width = viewport.width + "px";
+      canvas.style.height = viewport.height + "px";
       // Make sure to clear the canvas before rendering
       context.clearRect(0, 0, canvas.width, canvas.height);
   
@@ -73,7 +82,7 @@ export default function Tiling() {
           const y = row * tileSize;
   
           // Skip if tile is not visible
-          if (!isTileVisible({x, y}, panPoint, tileSize)) continue;
+          if (!isTileVisible({x, y}, debouncedPanPoint, tileSize)) continue;
 
           const renderTile = async () => {
             const tileCanvas = document.createElement("canvas");
@@ -101,16 +110,23 @@ export default function Tiling() {
     }
 
     if (pdfDoc) renderPdfToCanvasTiles();
-  }, [pdfDoc, currentPage, pageScale, panPoint]);
+  }, [pdfDoc, currentPage, debouncedPageScale, debouncedPanPoint]);
 
   const handlePageScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
-    if (value >= 25 && value <= 500) {
+    if (value >= minZoom * 100 && value <= maxZoom * 100) {
       setPageScale(value / 100);
     } else {
       e.preventDefault();
     }
   }
+
+  // Use debounce
+  const handleOnScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setPanPoint({ x: e.currentTarget.scrollLeft, y: e.currentTarget.scrollTop });
+  }
+
+  const step = 25
 
   return (
     <>
@@ -126,12 +142,18 @@ export default function Tiling() {
       :
         <div className="flex w-screen h-screen bg-[#282828]">
           <header className={`fixed top-5 flex left-1/2 p-4 -translate-x-1/2 justify-center z-50 ${bgSecondary} shadow-xl p-1 rounded-2xl`}>
-            <div>
+            <div className="mr-2">
               <label htmlFor="page-scale" className="text-white">Zoom:</label>&nbsp;
-              <input className="focus:outline-none border-b-2 text-center border-white" type="number" min={25} max={500} step={25} value={pageScale * 100} onInput={handlePageScaleChange} />
+              <input className="focus:outline-none border-b-2 text-center border-white" type="number" min={minZoom * 100} max={maxZoom * 100} step={step} value={pageScale * 100} onInput={handlePageScaleChange} />
             </div>
+            <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.max(minZoom, prev - (step / 100)))}>
+              -
+            </button>
+            <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.min(maxZoom, prev + (step / 100)))}>
+              +
+            </button>
           </header>
-          <div className="flex mx-auto overflow-hidden h-full">
+          <div className="flex mx-auto overflow-auto min-h-full" onScroll={handleOnScroll}>
             <canvas ref={canvasRef} className="block" />
           </div>
         </div>
