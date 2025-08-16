@@ -5,6 +5,7 @@ import useDebounce from "../hooks/useDebounce";
 import * as pdfjsLib from "pdfjs-dist";
 import { btn, bgPrimary, bgSecondary } from "../common";
 import { Point } from "motion";
+import Structures from "./Structures";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
@@ -23,6 +24,8 @@ export default function Tiling() {
   const [panPoint, setPanPoint] = useState<Point>({ x: 0, y: 0 });
   const debouncedPageScale = useDebounce(pageScale, debounceDelay);
   const debouncedPanPoint = useDebounce(panPoint, debounceDelay);
+  const debouncedCurrentPage = useDebounce(currentPage, debounceDelay);
+  const [tileCache, setTileCache] = useState<Map<string, HTMLCanvasElement>>(new Map());
   
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
@@ -56,11 +59,17 @@ export default function Tiling() {
           tile.y >= panPoint.y - tileSize && tile.y <= panPoint.y + tileSize;
   }
 
+  const getTileCanvasKey = (pageNumber: number, pageScale: number, { x, y}: Point) => {
+    return `${pageNumber}-${pageScale}-${x}-${y}`;
+  }
+
   useEffect(() => {
     const tileSize = Math.ceil(Math.sqrt(window.innerWidth * window.innerHeight));
+    const promises: Promise<void>[] = [];
+    let cancelPromises = false;
 
     const renderPdfToCanvasTiles = async () => {
-      const page = await pdfDoc!.getPage(currentPage);
+      const page = await pdfDoc!.getPage(debouncedCurrentPage);
       const canvas = canvasRef.current!;
       const viewport = page.getViewport({ scale: debouncedPageScale });
       const context = canvas.getContext("2d")!;
@@ -75,7 +84,6 @@ export default function Tiling() {
       const cols = Math.ceil(viewport.width / tileSize);
       const rows = Math.ceil(viewport.height / tileSize);
 
-      const promises = [];
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
           const x = col * tileSize;
@@ -85,6 +93,15 @@ export default function Tiling() {
           if (!isTileVisible({x, y}, debouncedPanPoint, tileSize)) continue;
 
           const renderTile = async () => {
+            const key = getTileCanvasKey(debouncedCurrentPage, debouncedPageScale, { x, y });
+            const cachedTile = tileCache.get(key);
+            if (cachedTile) {
+              console.log('tile is cached', key);
+              context.drawImage(cachedTile, x, y);
+              return;
+            }
+            console.log('tile is not cached', key);
+            
             const tileCanvas = document.createElement("canvas");
             tileCanvas.width = tileSize;
             tileCanvas.height = tileSize;
@@ -95,9 +112,15 @@ export default function Tiling() {
               transform: [1, 0, 0, 1, -x, -y],
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any;
+
+            setTileCache(prev => {
+              const m = new Map(prev);
+              m.set(key, tileCanvas);
+              return m;
+            });
     
             await page.render(renderContext).promise;
-            context.drawImage(tileCanvas, x, y);
+            if (!cancelPromises) context.drawImage(tileCanvas, x, y);
           }
 
           promises.push(renderTile());
@@ -110,7 +133,11 @@ export default function Tiling() {
     }
 
     if (pdfDoc) renderPdfToCanvasTiles();
-  }, [pdfDoc, currentPage, debouncedPageScale, debouncedPanPoint]);
+
+    return () => {
+      cancelPromises = true;
+    }
+  }, [pdfDoc, debouncedCurrentPage, debouncedPageScale, debouncedPanPoint]);
 
   const handlePageScaleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
@@ -131,14 +158,22 @@ export default function Tiling() {
   return (
     <>
       {!pdfDoc ? 
-        <div className="flex flex-col items-center justify-center pt-[20vh]">
+        <>
+          <div className="flex flex-col items-center justify-center pt-[20vh]">
+          <div className={`flex flex-col items-center justify-center mb-5`}>
+            <h1 className="text-4xl mb-5">PDF Viewer</h1>
+            <p className="mb-2">Zoom in and out of PDFs with tiling solution.</p>
+            <p className="text-xs">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+          </div>
           <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
             <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
             <label htmlFor="pdf-file" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`}>
-              {pdfDoc ? 'Change' : 'Upload PDF'}
+              Upload PDF
             </label>
           </div>
         </div>
+        <Structures />
+        </>
       :
         <div className="flex w-screen h-screen bg-[#282828]">
           <header className={`fixed top-5 flex left-1/2 p-4 -translate-x-1/2 justify-center z-50 ${bgSecondary} shadow-xl p-1 rounded-2xl`}>
@@ -152,6 +187,15 @@ export default function Tiling() {
             <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.min(maxZoom, prev + (step / 100)))}>
               +
             </button>
+            <span className="px-5">|</span>
+            <div>
+              <button type="button" className={`px-2 hover:underline cursor-pointer active:outline-none focus:outline-none bg-transparent text-xs`} onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}>
+                Previous
+              </button>
+              <button type="button" className={`px-2 hover:underline cursor-pointer active:outline-none focus:outline-none bg-transparent text-xs`} onClick={() => setCurrentPage(prev => Math.min(pdfDoc!.numPages, prev + 1))}>
+                Next
+              </button>
+            </div>
           </header>
           <div className="flex mx-auto overflow-auto min-h-full" onScroll={handleOnScroll}>
             <canvas ref={canvasRef} className="block" />

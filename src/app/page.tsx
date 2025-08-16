@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { Mode } from "@/types";
 import { ToolProvider } from "./components/ToolContext";
-import { motion } from "framer-motion";
 import withTooltip from "./hocs/withTooltip";
 import { bgSecondary, btn, bgPrimary } from "./common";
+import Structures from "./components/Structures";
 
 const ButtonWithTooltip = withTooltip((props) => <button type="button" {...props}></button>);
 
@@ -27,11 +27,6 @@ export default function Home() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isLoadingPdf]);
-
-  const initialYs = -0
-  const finalYs = -50
-  const durations = 1.5
-  const easings = "easeOut"
 
   return (
     <ToolProvider value={{ tool, setTool, setIsLoadingPdf, setHasPdf, isLoadingPdf, generatingDownloadUrl, setGeneratingDownloadUrl }}>
@@ -56,12 +51,7 @@ export default function Home() {
         </div>
         <PdfViewer/>
       </main>
-      <div className="absolute flex gap-[5vw] px-[10vw] w-full bottom-0 h-full overflow-hidden">
-        <motion.img src="/structure.png" alt="structure" width={280} height={440} className="h-[940px] object-contain" initial={{ y: initialYs, opacity: 0 }} animate={{ y: finalYs, opacity: 0.10 }} transition={{ duration: durations, ease: easings }} />
-        <motion.img src="/structure.png" alt="structure" width={180} height={340} className="h-[940px] object-contain scale-x-[-1] flex-grow-0" initial={{ y: initialYs, opacity: 0 }} animate={{ y: finalYs, opacity: 0.15 }} transition={{ duration: durations, ease: easings }} />
-        <motion.img src="/structure.png" alt="structure" width={820} height={1200} className=" object-cover" initial={{ y: initialYs, opacity: 0 }} animate={{ y: finalYs, opacity: 0.25 }} transition={{ duration: durations, ease: easings }} />
-        <motion.img src="/structure.png" alt="structure" width={327} height={940} className="h-[940px] scale-x-[-1] flex-grow-0" initial={{ y: initialYs, opacity: 0 }} animate={{ y: finalYs, opacity: 0.15 }} transition={{ duration: durations, ease: easings }} />
-      </div>
+      <Structures />
     </ToolProvider>
   );
 }
