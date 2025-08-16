@@ -7,6 +7,7 @@ import { ToolProvider } from "./components/ToolContext";
 import withTooltip from "./hocs/withTooltip";
 import { bgSecondary, btn, bgPrimary } from "./common";
 import Structures from "./components/Structures";
+import Link from "next/link";
 
 const ButtonWithTooltip = withTooltip((props) => <button type="button" {...props}></button>);
 
@@ -47,7 +48,8 @@ export default function Home() {
         <div className={`flex flex-col items-center justify-center ${hasPdf ? 'mt-[80px]' : 'mt-[20vh]'} mb-5`}>
           <h1 className="text-4xl mb-5">PDF Polygon Annotator</h1>
           <p className="mb-2">Annotate PDFs with polygons and texts.</p>
-          <p className="text-xs">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+          <p className="text-xs mb-2">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+          <Link href={'/tiling'} className="text-xs text-white underline">PDF viewer with tiling solution</Link>
         </div>
         <PdfViewer/>
       </main>

@@ -6,11 +6,13 @@ import * as pdfjsLib from "pdfjs-dist";
 import { btn, bgPrimary, bgSecondary } from "../common";
 import { Point } from "motion";
 import Structures from "./Structures";
+import Link from "next/link";
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = "./pdf.worker.mjs";
 
-const maxZoom = 5;
+const maxZoom = 8;
 const minZoom = 0.25;
+const zoomStep = 25;
 const debounceDelay = 100;
 
 export default function Tiling() {
@@ -153,17 +155,16 @@ export default function Tiling() {
     setPanPoint({ x: e.currentTarget.scrollLeft, y: e.currentTarget.scrollTop });
   }
 
-  const step = 25
-
   return (
     <>
       {!pdfDoc ? 
         <>
           <div className="flex flex-col items-center justify-center pt-[20vh] relative z-10">
             <div className={`flex flex-col items-center justify-center mb-5`}>
-              <h1 className="text-4xl mb-5">PDF Viewer</h1>
+              <h1 className="text-4xl mb-5">PDF Viewer with tiling solution</h1>
               <p className="mb-2">Zoom in and out of high-resolution PDFs with tiling solution.</p>
-              <p className="text-xs">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+              <p className="text-xs mb-2">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+              <Link href={'/'} className="text-xs text-white underline">PDF polygon annotator</Link>
             </div>
             <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
               <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
@@ -179,12 +180,12 @@ export default function Tiling() {
           <header className={`fixed top-5 flex left-1/2 p-4 -translate-x-1/2 justify-center z-50 ${bgSecondary} shadow-xl p-1 rounded-2xl`}>
             <div className="mr-2">
               <label htmlFor="page-scale" className="text-white">Zoom:</label>&nbsp;
-              <input className="focus:outline-none border-b-2 text-center border-white" type="number" min={minZoom * 100} max={maxZoom * 100} step={step} value={pageScale * 100} onInput={handlePageScaleChange} />
+              <input className="focus:outline-none border-b-2 text-center border-white" type="number" min={minZoom * 100} max={maxZoom * 100} step={zoomStep} value={pageScale * 100} readOnly onInput={handlePageScaleChange} />
             </div>
-            <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.max(minZoom, prev - (step / 100)))}>
+            <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.max(minZoom, prev - (zoomStep / 100)))}>
               -
             </button>
-            <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.min(maxZoom, prev + (step / 100)))}>
+            <button type="button" className={`px-2 cursor-pointer active:outline-none focus:outline-none bg-transparent text-xl`} onClick={() => setPageScale(prev => Math.min(maxZoom, prev + (zoomStep / 100)))}>
               +
             </button>
             <span className="px-5">|</span>
