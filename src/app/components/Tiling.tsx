@@ -159,20 +159,20 @@ export default function Tiling() {
     <>
       {!pdfDoc ? 
         <>
-          <div className="flex flex-col items-center justify-center pt-[20vh]">
-          <div className={`flex flex-col items-center justify-center mb-5`}>
-            <h1 className="text-4xl mb-5">PDF Viewer</h1>
-            <p className="mb-2">Zoom in and out of PDFs with tiling solution.</p>
-            <p className="text-xs">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+          <div className="flex flex-col items-center justify-center pt-[20vh] relative z-10">
+            <div className={`flex flex-col items-center justify-center mb-5`}>
+              <h1 className="text-4xl mb-5">PDF Viewer</h1>
+              <p className="mb-2">Zoom in and out of high-resolution PDFs with tiling solution.</p>
+              <p className="text-xs">By <a href="https://jesvir.vercel.app/" className="text-white underline">Jesvir Zuniega</a></p>
+            </div>
+            <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
+              <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
+              <label htmlFor="pdf-file" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`}>
+                Upload a high-resolution PDF
+              </label>
+            </div>
           </div>
-          <div className={`flex w-full ${pdfDoc ? 'justify-between' : 'justify-center'}`}>
-            <input type="file" id="pdf-file" className="hidden" accept="application/pdf" onInput={handleFileChange}/>
-            <label htmlFor="pdf-file" className={`${btn} ${bgPrimary} !px-3 !py-2 text-base mb-5`}>
-              Upload PDF
-            </label>
-          </div>
-        </div>
-        <Structures />
+          <Structures />
         </>
       :
         <div className="flex w-screen h-screen bg-[#282828]">
